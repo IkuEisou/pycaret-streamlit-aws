@@ -10,6 +10,7 @@ import requests
 import os
 import fnmatch
 from pathlib import Path
+import math
 
 IMG_PATH = 'public/static/img/'
 MODEL_PATH = 'volume/models/'
@@ -70,25 +71,76 @@ def trainModel(dType, dataset, targetVal, target):
 
 def run():
     from PIL import Image
-    image = Image.open(IMG_PATH+'logo.png')
-    image_hospital = Image.open(IMG_PATH+'hospital.jpg')
+    image = Image.open(IMG_PATH+'logoMilizePycaret.png')
+    image_milize = Image.open(IMG_PATH+'milize_logo.png')
     irisImage = Image.open(IMG_PATH+'iris-machinelearning.jpg')
     hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
+            .sidebar .sidebar-content {
+                background-image: linear-gradient(#008a07,#008a07);
+                color: white;
+            }
+            .main{
+                background-color: #111111;
+                label{
+                    color: white;
+                }
+            }
+            .main label{
+                color: white;
+            }
+            .stNumberInput div.input-container div.controls .control{
+                background-color:#008a07;
+            }
+            h1{
+                color: white
+            }
+            .stSelectbox label{
+                color: white
+            }
+            .st-bp{
+                color: white;
+            }
+            .st-d9{
+                background-color:#1e3216;
+                border: 0;
+            }
+            .st-bu{
+                background-color:#1e3216;
+                border: 0;
+            }
+            .st-al{
+                color:white;
+            }
+            .streamlit-button.primary-button{
+                background-color:#008a07;
+                color:white;
+                border: 0;
+            }
+            .stButton{
+                text-align: center;
+            }
+            .stAlert{
+                bottom: 10px;
+            }
+            .st-ej {
+                color: white;
+            }
             </style>
             """
 
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    st.image(image, use_column_width=False)
+    st.image(image, use_column_width=False, width=800)
+    st.sidebar.image(image_milize, width=200)
     add_selectbox = st.sidebar.selectbox(
-        "How would you like to predict?",
+        "予測方法を選択",
         ("Online", "Batch"))
     # st.sidebar.info('This app is created to predict patient hospital charges')
-    # st.sidebar.success('https://milize.co.jp')
-    st.sidebar.image(image_hospital)
-    st.title("Milize AutoML Demo App")
+    st.sidebar.info('Copyright © Milize 2020')
+
+    st.title("AutoML予測アプリ")
     dType = st.selectbox('Type', ['Regression', 'Classification'])
     ds = ''
     if(dType == 'Regression'):
@@ -140,10 +192,11 @@ def run():
         input_df = pd.DataFrame([input_dict])
 
         model = load_model(MODEL_PATH+dataset+'/'+modelName)
-        if st.button("Predict"):
+        if st.button("予測する"):
             output = predict(model=model, input_df=input_df)
             if dataset == 'insurance':
-                output = 'The charges is {}'.format('$' + str(output))
+                output = '保険料予測は {}'.format(
+                    str(math.ceil(output*104.86)) + '円')
             elif dataset == 'iris':
                 output = 'This is '+LabelEncoded[output]
             st.success(output)
