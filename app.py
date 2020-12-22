@@ -1,6 +1,6 @@
-from logging import debug
+# from logging import debug
 from pycaret.regression import *
-from pycaret.datasets import get_data
+# from pycaret.datasets import get_data
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -78,7 +78,7 @@ def run():
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            .sidebar .sidebar-content {
+            .css-1aumxhk {
                 background-image: linear-gradient(#008a07,#008a07);
                 color: white;
             }
@@ -94,16 +94,31 @@ def run():
             .stNumberInput div.input-container div.controls .control{
                 background-color:#008a07;
             }
+            .ReactVirtualized__Grid{
+                color: white;
+            }
             h1{
                 color: white
             }
             .stSelectbox label{
                 color: white
             }
+            .step-down{
+                color: white;
+                background-color:#1e3216;
+            }
+            .step-up{
+                color: white;
+                background-color:#1e3216;
+            }
             .st-bp{
                 color: white;
+                background-color:#1e3216;
             }
-            .st-d9{
+            .st-bs {
+                color: white;
+            }
+            .st-dc{
                 background-color:#1e3216;
                 border: 0;
             }
