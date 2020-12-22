@@ -100,8 +100,12 @@ def run():
             h1{
                 color: white
             }
+            .st-au{
+                border: 0;
+                background-image: linear-gradient(#008a07,#008a07);
+            }
             .stSelectbox label{
-                color: white
+                color: white;
             }
             .step-down{
                 color: white;
@@ -128,6 +132,17 @@ def run():
             }
             .st-al{
                 color:white;
+            }
+            .st-ef {
+                color:white;
+            }
+            .css-2trqyj {
+                color:white;
+                background-color:#1e3216;
+                border: 0;
+            }
+            .css-odwihv {
+                color:#008a07;
             }
             .streamlit-button.primary-button{
                 background-color:#008a07;
