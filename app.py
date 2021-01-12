@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 import time
 import requests
-import os
+import os,json
 import fnmatch
 from pathlib import Path
 import math
@@ -39,7 +39,7 @@ def find(pattern, path):
 
 
 def trainModel(dType, dataset, targetVal, target):
-    if st.button("作成"):
+    if st.button("モデル作成"):
         url = 'http://127.0.0.1:5000/automl'
         myobj = {'type': dType, 'target': targetVal, 'dataset': dataset}
         chunk_size = 1024
@@ -68,6 +68,29 @@ def trainModel(dType, dataset, targetVal, target):
         st.success(
             'The model of predicting {} from {} has been finished'.format(target, dataset))
 
+def crtDataset():
+        uploaded_file = st.file_uploader("学習データのcsvファイルを選んでください。",type=["csv"])
+        if uploaded_file is not None:
+            if st.button("データセット作成"):
+                url = 'http://127.0.0.1:5000/dataset'
+                myobj = {'fileupload': uploaded_file}
+                r = requests.post(url,files=myobj)
+                res = r.json()
+                return res["result"]
+
+def getDatasets():
+    url = 'http://127.0.0.1:5000/dataset'
+    r = requests.get(url)
+    res = r.json()
+    return res["result"]
+
+def getDatasetHeader(name):
+    url = 'http://127.0.0.1:5000/dataset'
+    payload = {'name': name}
+    r = requests.get(url,params=payload)
+    res = r.json()
+    df = pd.DataFrame(res["result"])
+    return list(df)
 
 def run():
     from PIL import Image
@@ -78,6 +101,7 @@ def run():
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
+            body {color: white;}
             .css-1aumxhk {
                 background-image: linear-gradient(#008a07,#008a07);
                 color: white;
@@ -172,20 +196,21 @@ def run():
 
     st.title("AutoML予測アプリ")
     dType = st.selectbox('Type', ['Regression', 'Classification'])
-    ds = ''
-    if(dType == 'Regression'):
-        ds = ['insurance']
-    elif(dType == 'Classification'):
-        ds = ['iris']
+    ds = getDatasets()
+    # if(dType == 'Regression'):
+    #     ds = ['insurance']
+    # elif(dType == 'Classification'):
+    #     ds = ['iris']
     dataset = st.selectbox('Dataset', ds)
-    targetVal = ''
-    if dataset == 'insurance':
-        targetVal = 'charges'
-    elif dataset == 'iris':
-        targetVal = 'species'
+    targetVal = getDatasetHeader(ds)
+    # if dataset == 'insurance':
+    #     targetVal = 'charges'
+    # elif dataset == 'iris':
+    #     targetVal = 'species'
     Path(MODEL_PATH+dataset).mkdir(parents=True, exist_ok=True)
     models = find('*.pkl', MODEL_PATH+dataset+'/')
-    target = st.selectbox('Target', [targetVal])
+    target = st.selectbox('Target', targetVal)
+    crtDataset()
     if len(models) == 0:
         st.warning("モデルはありません。新規作成してください。")
         trainModel(dType, dataset, targetVal, target)
@@ -236,7 +261,7 @@ def run():
     elif add_selectbox == 'Batch':
         modelName = sex = st.selectbox('Model', models)
         file_upload = st.file_uploader(
-            "Upload csv file for predictions", type=["csv"])
+            "予測データのcsvファイルを選んでください。", type=["csv"])
 
         if file_upload is not None:
             print(file_upload)
