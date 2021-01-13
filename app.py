@@ -69,14 +69,22 @@ def trainModel(dType, dataset, targetVal, target):
             'The model of predicting {} from {} has been finished'.format(target, dataset))
 
 def crtDataset():
-        uploaded_file = st.file_uploader("学習データのcsvファイルを選んでください。",type=["csv"])
-        if uploaded_file is not None:
-            if st.button("データセット作成"):
-                url = 'http://127.0.0.1:5000/dataset'
-                myobj = {'fileupload': uploaded_file}
-                r = requests.post(url,files=myobj)
-                res = r.json()
-                return res["result"]
+    uploaded_file = st.file_uploader("学習データのcsvファイルを選んでください。", type=["csv"])
+    if uploaded_file is not None:
+        if st.button("データセット作成"):
+            url = 'http://127.0.0.1:5000/dataset'
+            myobj = {'fileupload': uploaded_file}
+            r = requests.post(url, files=myobj)
+            res = r.json()
+            st.info(res["result"])
+
+def delDataset(toDeleteDataset):
+    if st.button("当該データセット削除"):
+        url = 'http://127.0.0.1:5000/dataset'
+        myobj = {'name': toDeleteDataset}
+        r = requests.delete(url, data=myobj)
+        res = r.json()
+        st.info(res["result"])
 
 def getDatasets():
     url = 'http://127.0.0.1:5000/dataset'
@@ -202,7 +210,7 @@ def run():
     # elif(dType == 'Classification'):
     #     ds = ['iris']
     dataset = st.selectbox('Dataset', ds)
-    targetVal = getDatasetHeader(ds)
+    targetVal = getDatasetHeader(dataset)
     # if dataset == 'insurance':
     #     targetVal = 'charges'
     # elif dataset == 'iris':
@@ -211,6 +219,7 @@ def run():
     models = find('*.pkl', MODEL_PATH+dataset+'/')
     target = st.selectbox('Target', targetVal)
     crtDataset()
+    delDataset(dataset)
     if len(models) == 0:
         st.warning("モデルはありません。新規作成してください。")
         trainModel(dType, dataset, targetVal, target)
