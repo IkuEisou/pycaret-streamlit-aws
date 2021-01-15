@@ -23,9 +23,12 @@ LabelEncoded = ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
 
 
 def predict(model, input_df):
-    predictions_df = predict_model(estimator=model, data=input_df)
-    predictions = predictions_df['Label'][0]
-    return predictions
+    try:
+        predictions_df = predict_model(estimator=model, data=input_df)
+        predictions = predictions_df['Label'][0]
+        return predictions
+    except KeyError:
+        st.warning("予測したいTargetはモデルと違って、正しい「Target」を選んでください。")
 
 
 def find(pattern, path):
@@ -39,7 +42,6 @@ def find(pattern, path):
 
 def trainModel(dType, dataset, target):
     if st.button("モデル作成"):
-        print("target:", target)
         url = 'http://127.0.0.1:5000/automl'
         myobj = {'type': dType, 'target': target, 'dataset': dataset}
         chunk_size = 1024
@@ -107,6 +109,15 @@ def getDatasetHeader(name):
     return list(df)
 
 
+def delModel(toDeleteModel, dataset):
+    if st.button("当該モデル削除"):
+        try:
+            os.remove(MODEL_PATH + dataset + '/' + toDeleteModel + '.pkl')
+            st.info("{}モデル削除しました。".format(toDeleteModel))
+        except FileNotFoundError:
+            st.warning("{}モデルが見つかりません。".format(toDeleteModel))
+
+
 def run():
     from PIL import Image
     image = Image.open(IMG_PATH + 'logoMilizePycaret.png')
@@ -116,7 +127,7 @@ def run():
             <style>
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            body {color: white;}
+            # body {color: white;}
             .css-1aumxhk {
                 background-image: linear-gradient(#008a07,#008a07);
                 color: white;
@@ -128,6 +139,9 @@ def run():
                 }
             }
             .main label{
+                color: white;
+            }
+            .uploadedFileName{
                 color: white;
             }
             .stNumberInput div.input-container div.controls .control{
@@ -159,6 +173,9 @@ def run():
                 background-color:#1e3216;
             }
             .st-bs {
+                color: white;
+            }
+            .st-fg {
                 color: white;
             }
             .st-dc{
@@ -207,7 +224,7 @@ def run():
         "予測方法を選択",
         ("Online", "Batch"))
     # st.sidebar.info('This app is created to predict patient hospital charges')
-    st.sidebar.info('Copyright © Milize 2020')
+    st.sidebar.info('Copyright © Milize 2020~2021')
 
     st.title("AutoML予測アプリ")
     dType = st.selectbox('Type', ['Regression', 'Classification'])
@@ -232,6 +249,7 @@ def run():
         trainModel(dType, dataset, target)
     elif add_selectbox == 'Online':
         modelName = st.selectbox('Model', models)
+        delModel(modelName, dataset)
         input_dict = {}
         if dataset == 'insurance':
             age = st.number_input('Age', min_value=1, max_value=100, value=25)
