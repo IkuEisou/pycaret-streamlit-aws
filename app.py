@@ -1,13 +1,12 @@
 # from logging import debug
-from pycaret.regression import *
+from pycaret.regression import predict_model, load_model
 # from pycaret.datasets import get_data
 import streamlit as st
 import pandas as pd
-import numpy as np
 from datetime import datetime
 import time
+import os
 import requests
-import os,json
 import fnmatch
 from pathlib import Path
 import math
@@ -38,35 +37,39 @@ def find(pattern, path):
     return result
 
 
-def trainModel(dType, dataset, targetVal, target):
+def trainModel(dType, dataset, target):
     if st.button("モデル作成"):
+        print("target:", target)
         url = 'http://127.0.0.1:5000/automl'
-        myobj = {'type': dType, 'target': targetVal, 'dataset': dataset}
+        myobj = {'type': dType, 'target': target, 'dataset': dataset}
         chunk_size = 1024
         'Waiting for training model...'
         r = requests.post(url, data=myobj, stream=True)
-        content_size = int(r.headers['content-length'])
-        now = datetime.now()
-        dt_string = now.strftime("%Y%m%d%H%M%S")
-        fileName = dataset+'_'+dt_string+'.pkl'
-        with open(MODEL_PATH+dataset+'/'+fileName, "wb") as pkl:
-            # Add a placeholder
-            latest_iteration = st.empty()
-            'Downloading the model...'
-            bar = st.progress(0)
-            size = 0
-            for chunk in r.iter_content(chunk_size):
-                if chunk:
-                    pkl.write(chunk)
-                    size = len(chunk)+size
-                    # Update the progress bar with each iteration.
-                    latest_iteration.text(
-                        f'Iteration {int(size/content_size)*100}')
-                    bar.progress(int(size/content_size)*100)
-                    time.sleep(0.1)
+        if r.status_code == 200:
+            content_size = int(r.headers['content-length'])
+            now = datetime.now()
+            dt_string = now.strftime("%Y%m%d%H%M%S")
+            fileName = dataset + '_' + dt_string + '.pkl'
+            with open(MODEL_PATH + dataset + '/' + fileName, "wb") as pkl:
+                # Add a placeholder
+                latest_iteration = st.empty()
+                'Downloading the model...'
+                bar = st.progress(0)
+                size = 0
+                for chunk in r.iter_content(chunk_size):
+                    if chunk:
+                        pkl.write(chunk)
+                        size = len(chunk) + size
+                        # Update the progress bar with each iteration.
+                        latest_iteration.text(
+                            f'Iteration {int(size/content_size)*100}')
+                        bar.progress(int(size / content_size) * 100)
+                        time.sleep(0.1)
+            st.success(
+                '{}のモデル{}の作成が完了しました'.format(target, dataset))
+        else:
+            st.error("{}のモデル{}の作成に失敗しました".format(target, dataset))
 
-        st.success(
-            'The model of predicting {} from {} has been finished'.format(target, dataset))
 
 def crtDataset():
     uploaded_file = st.file_uploader("学習データのcsvファイルを選んでください。", type=["csv"])
@@ -78,6 +81,7 @@ def crtDataset():
             res = r.json()
             st.info(res["result"])
 
+
 def delDataset(toDeleteDataset):
     if st.button("当該データセット削除"):
         url = 'http://127.0.0.1:5000/dataset'
@@ -86,25 +90,28 @@ def delDataset(toDeleteDataset):
         res = r.json()
         st.info(res["result"])
 
+
 def getDatasets():
     url = 'http://127.0.0.1:5000/dataset'
     r = requests.get(url)
     res = r.json()
     return res["result"]
 
+
 def getDatasetHeader(name):
     url = 'http://127.0.0.1:5000/dataset'
     payload = {'name': name}
-    r = requests.get(url,params=payload)
+    r = requests.get(url, params=payload)
     res = r.json()
-    df = pd.DataFrame(res["result"])
+    df = pd.DataFrame(res["data"])
     return list(df)
+
 
 def run():
     from PIL import Image
-    image = Image.open(IMG_PATH+'logoMilizePycaret.png')
-    image_milize = Image.open(IMG_PATH+'milize_logo.png')
-    irisImage = Image.open(IMG_PATH+'iris-machinelearning.jpg')
+    image = Image.open(IMG_PATH + 'logoMilizePycaret.png')
+    image_milize = Image.open(IMG_PATH + 'milize_logo.png')
+    irisImage = Image.open(IMG_PATH + 'iris-machinelearning.jpg')
     hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -215,14 +222,14 @@ def run():
     #     targetVal = 'charges'
     # elif dataset == 'iris':
     #     targetVal = 'species'
-    Path(MODEL_PATH+dataset).mkdir(parents=True, exist_ok=True)
-    models = find('*.pkl', MODEL_PATH+dataset+'/')
+    Path(MODEL_PATH + dataset).mkdir(parents=True, exist_ok=True)
+    models = find('*.pkl', MODEL_PATH + dataset + '/')
     target = st.selectbox('Target', targetVal)
     crtDataset()
     delDataset(dataset)
     if len(models) == 0:
         st.warning("モデルはありません。新規作成してください。")
-        trainModel(dType, dataset, targetVal, target)
+        trainModel(dType, dataset, target)
     elif add_selectbox == 'Online':
         modelName = st.selectbox('Model', models)
         input_dict = {}
@@ -252,17 +259,22 @@ def run():
             input_dict = {'sepal_length': sepal_length, 'sepal_width': sepal_width,
                           'petal_length': petal_length, 'petal_width': petal_width
                           }
+        else:
+            for idx, col in enumerate(targetVal):
+                if col != target:
+                    locals()['v' + str(idx)] = st.number_input(col, min_value=0.0, value=0.0)
+                    input_dict[col] = locals()['v' + str(idx)]
         output = ""
         input_df = pd.DataFrame([input_dict])
 
-        model = load_model(MODEL_PATH+dataset+'/'+modelName)
+        model = load_model(MODEL_PATH + dataset + '/' + modelName)
         if st.button("予測する"):
             output = predict(model=model, input_df=input_df)
             if dataset == 'insurance':
                 output = '保険料予測は {}'.format(
-                    str(math.ceil(output*104.86)) + '円')
+                    str(math.ceil(output * 104.86)) + '円')
             elif dataset == 'iris':
-                output = 'This is '+LabelEncoded[output]
+                output = 'This is ' + LabelEncoded[output]
             st.success(output)
             if dataset == 'iris':
                 st.image(irisImage, width=500)
@@ -275,7 +287,7 @@ def run():
         if file_upload is not None:
             print(file_upload)
             data = pd.read_csv(file_upload)
-            model = load_model(MODEL_PATH+dataset+'/'+modelName)
+            model = load_model(MODEL_PATH + dataset + '/' + modelName)
             predictions = predict_model(estimator=model, data=data).rename(
                 columns={'Label': target})
             predictions[target].replace(
