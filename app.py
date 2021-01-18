@@ -6,6 +6,7 @@ import pandas as pd
 from datetime import datetime
 import time
 import os
+import base64
 import requests
 import fnmatch
 from pathlib import Path
@@ -116,6 +117,17 @@ def delModel(toDeleteModel, dataset):
             st.info("{}モデル削除しました。".format(toDeleteModel))
         except FileNotFoundError:
             st.warning("{}モデルが見つかりません。".format(toDeleteModel))
+
+
+def get_table_download_link(df):
+    """Generates a link allowing the data in a given panda dataframe to be downloaded
+    in:  dataframe
+    out: href string
+    """
+    csv = df.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
+    href = f'<a href="data:file/csv;base64,{b64}">予測結果のダウンロード</a>'
+    return href
 
 
 def run():
@@ -314,6 +326,8 @@ def run():
             st.write(predictions)
             if dataset == 'iris':
                 st.image(irisImage, width=500)
+
+            st.markdown(get_table_download_link(predictions), unsafe_allow_html=True)
 
 
 if __name__ == '__main__':
