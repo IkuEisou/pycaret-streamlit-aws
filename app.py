@@ -144,6 +144,9 @@ def run():
                 background-image: linear-gradient(#008a07,#008a07);
                 color: white;
             }
+            .css-1ilyi7m {
+                color: white;
+            }
             .main{
                 background-color: #111111;
                 label{
