@@ -14,6 +14,7 @@ import math
 
 IMG_PATH = 'public/static/img/'
 MODEL_PATH = 'volume/models/'
+AUTOML_API_URL = 'http://automl_api:5000'
 Features = {
     'insurance': ['age', 'sex', 'bmi', 'children', 'smoker', 'region'],
     'diamond': ['Carat', 'Weight', 'Cut', 'Color',
@@ -43,7 +44,7 @@ def find(pattern, path):
 
 def trainModel(dType, dataset, target):
     if st.button("モデル作成"):
-        url = 'http://127.0.0.1:5000/automl'
+        url = AUTOML_API_URL + '/automl'
         myobj = {'type': dType, 'target': target, 'dataset': dataset}
         chunk_size = 1024
         'Waiting for training model...'
@@ -78,7 +79,7 @@ def crtDataset():
     uploaded_file = st.file_uploader("学習データのcsvファイルを選んでください。", type=["csv"])
     if uploaded_file is not None:
         if st.button("データセット作成"):
-            url = 'http://127.0.0.1:5000/dataset'
+            url = AUTOML_API_URL + '/dataset'
             myobj = {'fileupload': uploaded_file}
             r = requests.post(url, files=myobj)
             res = r.json()
@@ -87,7 +88,7 @@ def crtDataset():
 
 def delDataset(toDeleteDataset):
     if st.button("当該データセット削除"):
-        url = 'http://127.0.0.1:5000/dataset'
+        url = AUTOML_API_URL + '/dataset'
         myobj = {'name': toDeleteDataset}
         r = requests.delete(url, data=myobj)
         res = r.json()
@@ -95,14 +96,14 @@ def delDataset(toDeleteDataset):
 
 
 def getDatasets():
-    url = 'http://127.0.0.1:5000/dataset'
+    url = AUTOML_API_URL + '/dataset'
     r = requests.get(url)
     res = r.json()
     return res["result"]
 
 
 def getDatasetHeader(name):
-    url = 'http://127.0.0.1:5000/dataset'
+    url = AUTOML_API_URL + '/dataset'
     payload = {'name': name}
     r = requests.get(url, params=payload)
     res = r.json()
