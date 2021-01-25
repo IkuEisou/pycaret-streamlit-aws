@@ -2,6 +2,7 @@
 from pycaret.regression import predict_model, load_model
 # from pycaret.datasets import get_data
 import streamlit as st
+import sys
 import pandas as pd
 from datetime import datetime
 import time
@@ -14,7 +15,7 @@ import math
 
 IMG_PATH = 'public/static/img/'
 MODEL_PATH = 'volume/models/'
-AUTOML_API_URL = 'http://automl_api:5000'
+AUTOML_API_URL = 'http://localhost:5000'
 Features = {
     'insurance': ['age', 'sex', 'bmi', 'children', 'smoker', 'region'],
     'diamond': ['Carat', 'Weight', 'Cut', 'Color',
@@ -43,7 +44,7 @@ def find(pattern, path):
 
 
 def trainModel(dType, dataset, target):
-    if st.button("モデル作成"):
+    if st.button("モデル新規作成"):
         url = AUTOML_API_URL + '/automl'
         myobj = {'type': dType, 'target': target, 'dataset': dataset}
         chunk_size = 1024
@@ -99,7 +100,7 @@ def getDatasets():
     url = AUTOML_API_URL + '/dataset'
     r = requests.get(url)
     res = r.json()
-    return res["result"]
+    return res["data"]
 
 
 def getDatasetHeader(name):
@@ -255,63 +256,65 @@ def run():
     #     targetVal = 'charges'
     # elif dataset == 'iris':
     #     targetVal = 'species'
-    Path(MODEL_PATH + dataset).mkdir(parents=True, exist_ok=True)
-    models = find('*.pkl', MODEL_PATH + dataset + '/')
-    target = st.selectbox('Target', targetVal)
     crtDataset()
-    delDataset(dataset)
-    if len(models) == 0:
-        st.warning("モデルはありません。新規作成してください。")
-        trainModel(dType, dataset, target)
-    elif add_selectbox == 'Online':
-        modelName = st.selectbox('Model', models)
-        delModel(modelName, dataset)
-        input_dict = {}
-        if dataset == 'insurance':
-            age = st.number_input('Age', min_value=1, max_value=100, value=25)
-            sex = st.selectbox('Sex', ['male', 'female'])
-            bmi = st.number_input('BMI', min_value=10, max_value=50, value=10)
-            children = st.selectbox(
-                'Children', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-            if st.checkbox('Smoker'):
-                smoker = 'yes'
-            else:
-                smoker = 'no'
-            region = st.selectbox(
-                'Region', ['southwest', 'northwest', 'northeast', 'southeast'])
-            input_dict = {'age': age, 'sex': sex, 'bmi': bmi,
-                          'children': children, 'smoker': smoker, 'region': region}
-        elif dataset == 'iris':
-            sepal_length = st.number_input(
-                'sepal_length', min_value=1.0, max_value=100.0, value=5.1)
-            sepal_width = st.number_input(
-                'sepal_width', min_value=1.0, max_value=50.0, value=3.5)
-            petal_length = st.number_input(
-                'petal_length', min_value=1.0, max_value=100.0, value=1.4)
-            petal_width = st.number_input(
-                'petal_width', min_value=0.0, max_value=50.0, value=0.2)
-            input_dict = {'sepal_length': sepal_length, 'sepal_width': sepal_width,
-                          'petal_length': petal_length, 'petal_width': petal_width
-                          }
-        else:
-            for idx, col in enumerate(targetVal):
-                if col != target:
-                    locals()['v' + str(idx)] = st.number_input(col, min_value=0.0, value=0.0)
-                    input_dict[col] = locals()['v' + str(idx)]
-        output = ""
-        input_df = pd.DataFrame([input_dict])
-
-        model = load_model(MODEL_PATH + dataset + '/' + modelName)
-        if st.button("予測する"):
-            output = predict(model=model, input_df=input_df)
+    if len(ds) > 0:
+        delDataset(dataset)
+        Path(MODEL_PATH + dataset).mkdir(parents=True, exist_ok=True)
+        models = find('*.pkl', MODEL_PATH + dataset + '/')
+        target = st.selectbox('Target', targetVal)
+        if len(models) == 0:
+            st.warning("モデルはありません。新規作成してください。")
+            trainModel(dType, dataset, target)
+        elif add_selectbox == 'Online':
+            modelName = st.selectbox('Model', models)
+            trainModel(dType, dataset, target)
+            delModel(modelName, dataset)
+            input_dict = {}
             if dataset == 'insurance':
-                output = '保険料予測は {}'.format(
-                    str(math.ceil(output * 104.86)) + '円')
+                age = st.number_input('Age', min_value=1, max_value=100, value=25)
+                sex = st.selectbox('Sex', ['male', 'female'])
+                bmi = st.number_input('BMI', min_value=10, max_value=50, value=10)
+                children = st.selectbox(
+                    'Children', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+                if st.checkbox('Smoker'):
+                    smoker = 'yes'
+                else:
+                    smoker = 'no'
+                region = st.selectbox(
+                    'Region', ['southwest', 'northwest', 'northeast', 'southeast'])
+                input_dict = {'age': age, 'sex': sex, 'bmi': bmi,
+                            'children': children, 'smoker': smoker, 'region': region}
             elif dataset == 'iris':
-                output = 'This is ' + LabelEncoded[output]
-            st.success(output)
-            if dataset == 'iris':
-                st.image(irisImage, width=500)
+                sepal_length = st.number_input(
+                    'sepal_length', min_value=1.0, max_value=100.0, value=5.1)
+                sepal_width = st.number_input(
+                    'sepal_width', min_value=1.0, max_value=50.0, value=3.5)
+                petal_length = st.number_input(
+                    'petal_length', min_value=1.0, max_value=100.0, value=1.4)
+                petal_width = st.number_input(
+                    'petal_width', min_value=0.0, max_value=50.0, value=0.2)
+                input_dict = {'sepal_length': sepal_length, 'sepal_width': sepal_width,
+                            'petal_length': petal_length, 'petal_width': petal_width
+                            }
+            else:
+                for idx, col in enumerate(targetVal):
+                    if col != target:
+                        locals()['v' + str(idx)] = st.number_input(col, min_value=0.0, value=0.0)
+                        input_dict[col] = locals()['v' + str(idx)]
+            output = ""
+            input_df = pd.DataFrame([input_dict])
+
+            model = load_model(MODEL_PATH + dataset + '/' + modelName)
+            if st.button("予測する"):
+                output = predict(model=model, input_df=input_df)
+                if dataset == 'insurance':
+                    output = '保険料予測は {}'.format(
+                        str(math.ceil(output * 104.86)) + '円')
+                elif dataset == 'iris':
+                    output = 'This is ' + LabelEncoded[output]
+                st.success(output)
+                if dataset == 'iris':
+                    st.image(irisImage, width=500)
 
     elif add_selectbox == 'Batch':
         modelName = sex = st.selectbox('Model', models)
@@ -335,4 +338,9 @@ def run():
 
 
 if __name__ == '__main__':
+    args = sys.argv
+    if(len(args) > 1):
+        host = args[1]
+        AUTOML_API_URL = AUTOML_API_URL.replace('localhost', host)
+        print("host:", AUTOML_API_URL)
     run()

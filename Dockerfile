@@ -17,8 +17,8 @@ COPY . /app
 # Expose port 
 ENV PORT 8501
 
-# cmd to launch app when container is run
-CMD streamlit run app.py
+# cmd to launch app when container is run (automl_api)
+CMD streamlit run app.py 
 
 # streamlit-specific commands for config
 ENV LC_ALL=C.UTF-8
