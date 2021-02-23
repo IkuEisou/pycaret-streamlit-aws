@@ -9,9 +9,11 @@ import time
 import os
 import base64
 import requests
-import fnmatch
+# import fnmatch
 from pathlib import Path
 import math
+import zipfile
+import glob
 
 IMG_PATH = 'public/static/img/'
 MODEL_PATH = 'volume/models/'
@@ -36,10 +38,12 @@ def predict(model, input_df):
 
 def find(pattern, path):
     result = []
-    for root, dirs, files in os.walk(path):
-        for name in files:
-            if fnmatch.fnmatch(name, pattern):
-                result.append(os.path.splitext(name)[0])
+    # for root, dirs, files in os.walk(path):
+    #     for name in files:
+    #         if fnmatch.fnmatch(name, pattern):
+    #             result.append(os.path.splitext(name)[0])
+    for name in glob.iglob(path + '**/' + pattern, recursive=True):
+        result.append(os.path.basename(os.path.splitext(name)[0]))
     return result
 
 
@@ -54,8 +58,8 @@ def trainModel(dType, dataset, target):
             content_size = int(r.headers['content-length'])
             now = datetime.now()
             dt_string = now.strftime("%Y%m%d%H%M%S")
-            fileName = dataset + '_' + dt_string + '.pkl'
-            with open(MODEL_PATH + dataset + '/' + fileName, "wb") as pkl:
+            fileName = dataset + '_' + dt_string + '.zip'
+            with open(MODEL_PATH + dataset + '/' + fileName, "wb") as file:
                 # Add a placeholder
                 latest_iteration = st.empty()
                 'Downloading the model...'
@@ -63,13 +67,15 @@ def trainModel(dType, dataset, target):
                 size = 0
                 for chunk in r.iter_content(chunk_size):
                     if chunk:
-                        pkl.write(chunk)
+                        file.write(chunk)
                         size = len(chunk) + size
                         # Update the progress bar with each iteration.
                         latest_iteration.text(
                             f'Iteration {int(size/content_size)*100}')
                         bar.progress(int(size / content_size) * 100)
                         time.sleep(0.1)
+            with zipfile.ZipFile(MODEL_PATH + dataset + '/' + fileName ) as existing_zip:
+                existing_zip.extractall(MODEL_PATH + dataset + '/')
             st.success(
                 '{}のモデル{}の作成が完了しました'.format(target, dataset))
         else:
@@ -246,22 +252,26 @@ def run():
     st.title("AutoML予測アプリ")
     dType = st.selectbox('Type', ['Regression', 'Classification'])
     ds = getDatasets()
-    # if(dType == 'Regression'):
-    #     ds = ['insurance']
-    # elif(dType == 'Classification'):
-    #     ds = ['iris']
+    if(dType == 'Regression'):
+        ds.append('insurance')
+    elif(dType == 'Classification'):
+        ds.append('iris')
     dataset = st.selectbox('Dataset', ds)
-    targetVal = getDatasetHeader(dataset)
-    # if dataset == 'insurance':
-    #     targetVal = 'charges'
-    # elif dataset == 'iris':
-    #     targetVal = 'species'
+    if dataset == 'insurance':
+        targetVal = 'charges'
+    elif dataset == 'iris':
+        targetVal = 'species'
+    else:
+        targetVal = getDatasetHeader(dataset)
     crtDataset()
     if len(ds) > 0:
         delDataset(dataset)
         Path(MODEL_PATH + dataset).mkdir(parents=True, exist_ok=True)
         models = find('*.pkl', MODEL_PATH + dataset + '/')
-        target = st.selectbox('Target', targetVal)
+        if dataset == 'insurance' or dataset == 'iris':
+            target = st.selectbox('Target', [targetVal])
+        else:
+            target = st.selectbox('Target', targetVal)
         if len(models) == 0:
             st.warning("モデルはありません。新規作成してください。")
             trainModel(dType, dataset, target)
@@ -282,8 +292,7 @@ def run():
                     smoker = 'no'
                 region = st.selectbox(
                     'Region', ['southwest', 'northwest', 'northeast', 'southeast'])
-                input_dict = {'age': age, 'sex': sex, 'bmi': bmi,
-                            'children': children, 'smoker': smoker, 'region': region}
+                input_dict = {'age': age, 'sex': sex, 'bmi': bmi, 'children': children, 'smoker': smoker, 'region': region}
             elif dataset == 'iris':
                 sepal_length = st.number_input(
                     'sepal_length', min_value=1.0, max_value=100.0, value=5.1)
@@ -293,9 +302,7 @@ def run():
                     'petal_length', min_value=1.0, max_value=100.0, value=1.4)
                 petal_width = st.number_input(
                     'petal_width', min_value=0.0, max_value=50.0, value=0.2)
-                input_dict = {'sepal_length': sepal_length, 'sepal_width': sepal_width,
-                            'petal_length': petal_length, 'petal_width': petal_width
-                            }
+                input_dict = {'sepal_length': sepal_length, 'sepal_width': sepal_width, 'petal_length': petal_length, 'petal_width': petal_width}
             else:
                 for idx, col in enumerate(targetVal):
                     if col != target:
@@ -304,7 +311,7 @@ def run():
             output = ""
             input_df = pd.DataFrame([input_dict])
 
-            model = load_model(MODEL_PATH + dataset + '/' + modelName)
+            model = load_model(MODEL_PATH + dataset + '/app/models/' + modelName + '/' + modelName)
             if st.button("予測する"):
                 output = predict(model=model, input_df=input_df)
                 if dataset == 'insurance':
@@ -316,25 +323,25 @@ def run():
                 if dataset == 'iris':
                     st.image(irisImage, width=500)
 
-    elif add_selectbox == 'Batch':
-        modelName = sex = st.selectbox('Model', models)
-        file_upload = st.file_uploader(
-            "予測データのcsvファイルを選んでください。", type=["csv"])
+        elif add_selectbox == 'Batch':
+            modelName = sex = st.selectbox('Model', models)
+            file_upload = st.file_uploader(
+                "予測データのcsvファイルを選んでください。", type=["csv"])
 
-        if file_upload is not None:
-            print(file_upload)
-            data = pd.read_csv(file_upload)
-            model = load_model(MODEL_PATH + dataset + '/' + modelName)
-            predictions = predict_model(estimator=model, data=data).rename(
-                columns={'Label': target})
-            predictions[target].replace(
-                {0: LabelEncoded[0], 1: LabelEncoded[1], 2: LabelEncoded[2]}, inplace=True)
+            if file_upload is not None:
+                print(file_upload)
+                data = pd.read_csv(file_upload)
+                model = load_model(MODEL_PATH + dataset + '/app/models/' + modelName + '/' + modelName)
+                predictions = predict_model(estimator=model, data=data).rename(
+                    columns={'Label': target})
+                predictions[target].replace(
+                    {0: LabelEncoded[0], 1: LabelEncoded[1], 2: LabelEncoded[2]}, inplace=True)
 
-            st.write(predictions)
-            if dataset == 'iris':
-                st.image(irisImage, width=500)
+                st.write(predictions)
+                if dataset == 'iris':
+                    st.image(irisImage, width=500)
 
-            st.markdown(get_table_download_link(predictions), unsafe_allow_html=True)
+                st.markdown(get_table_download_link(predictions), unsafe_allow_html=True)
 
 
 if __name__ == '__main__':
