@@ -14,6 +14,7 @@ from pathlib import Path
 import math
 import zipfile
 import glob
+import shutil
 
 IMG_PATH = 'public/static/img/'
 MODEL_PATH = 'volume/models/'
@@ -74,10 +75,15 @@ def trainModel(dType, dataset, target):
                             f'Iteration {int(size/content_size)*100}')
                         bar.progress(int(size / content_size) * 100)
                         time.sleep(0.1)
-            with zipfile.ZipFile(MODEL_PATH + dataset + '/' + fileName ) as existing_zip:
-                existing_zip.extractall(MODEL_PATH + dataset + '/')
-            st.success(
-                '{}のモデル{}の作成が完了しました'.format(target, dataset))
+            zipPath = MODEL_PATH + dataset + '/'
+            zipExist = find("*.zip", zipPath)
+            if len(zipExist) > 0:
+                with zipfile.ZipFile(zipPath + fileName) as existing_zip:
+                    existing_zip.extractall(MODEL_PATH + dataset + '/')
+                    os.remove(MODEL_PATH + dataset + '/' + fileName)
+                st.success('{}のモデル{}の作成が完了しました'.format(target, dataset))
+            else:
+                st.error("{}のモデル{}の作成に失敗しました".format(target, dataset))
         else:
             st.error("{}のモデル{}の作成に失敗しました".format(target, dataset))
 
@@ -121,7 +127,8 @@ def getDatasetHeader(name):
 def delModel(toDeleteModel, dataset):
     if st.button("当該モデル削除"):
         try:
-            os.remove(MODEL_PATH + dataset + '/' + toDeleteModel + '.pkl')
+            # os.remove(MODEL_PATH + dataset + '/' + toDeleteModel + '.zip')
+            shutil.rmtree(MODEL_PATH + dataset + '/app/models/' + toDeleteModel)
             st.info("{}モデル削除しました。".format(toDeleteModel))
         except FileNotFoundError:
             st.warning("{}モデルが見つかりません。".format(toDeleteModel))
@@ -277,6 +284,27 @@ def run():
             trainModel(dType, dataset, target)
         elif add_selectbox == 'Online':
             modelName = st.selectbox('Model', models)
+            plotPath = MODEL_PATH + dataset + '/app/models/' + modelName + '/'
+            if dType == 'Regression':
+                fiImage = Image.open(plotPath + 'Feature Importance.png')
+                st.markdown('<font color=white>特徴量の重要度</font>', unsafe_allow_html=True)
+                st.image(fiImage, width=700)
+                fsImg = Image.open(plotPath + 'Feature Selection.png')
+                st.markdown('<font color=white>特徴選択</font>', unsafe_allow_html=True)
+                st.image(fsImg, width=700)
+                reImg = Image.open(plotPath + 'Residuals.png')
+                st.markdown('<font color=white>残差</font>', unsafe_allow_html=True)
+                st.image(reImg, width=700)
+            elif dType == 'Classification':
+                crImage = Image.open(plotPath + 'Class Report.png')
+                st.markdown('<font color=white>ヒートマップ</font>', unsafe_allow_html=True)
+                st.image(crImage, width=700)
+                cmImg = Image.open(plotPath + 'Confusion Matrix.png')
+                st.markdown('<font color=white>混合行列</font>', unsafe_allow_html=True)
+                st.image(cmImg, width=700)
+            peImg = Image.open(plotPath + 'Prediction Error.png')
+            st.markdown('<font color=white>予測誤差</font>', unsafe_allow_html=True)
+            st.image(peImg, width=700)
             trainModel(dType, dataset, target)
             delModel(modelName, dataset)
             input_dict = {}
@@ -310,8 +338,7 @@ def run():
                         input_dict[col] = locals()['v' + str(idx)]
             output = ""
             input_df = pd.DataFrame([input_dict])
-
-            model = load_model(MODEL_PATH + dataset + '/app/models/' + modelName + '/' + modelName)
+            model = load_model(plotPath + modelName)
             if st.button("予測する"):
                 output = predict(model=model, input_df=input_df)
                 if dataset == 'insurance':
