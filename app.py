@@ -11,6 +11,7 @@ import base64
 import requests
 # import fnmatch
 from pathlib import Path
+from PIL import Image
 import math
 import zipfile
 import glob
@@ -26,6 +27,103 @@ Features = {
     'iris': ['sepal_length', 'sepal_width', 'petal_length', 'petal_width']
 }
 LabelEncoded = ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
+
+hide_streamlit_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        # body {color: white;}
+        .css-1aumxhk {
+            background-image: linear-gradient(#008a07,#008a07);
+            color: white;
+        }
+        .css-1ilyi7m {
+            color: white;
+        }
+        .main{
+            background-color: #111111;
+            label{
+                color: white;
+            }
+        }
+        .main label{
+            color: white;
+        }
+        .uploadedFileName{
+            color: white;
+        }
+        .stNumberInput div.input-container div.controls .control{
+            background-color:#008a07;
+        }
+        .ReactVirtualized__Grid{
+            color: white;
+        }
+        h1{
+            color: white
+        }
+        .st-au{
+            border: 0;
+            background-image: linear-gradient(#008a07,#008a07);
+        }
+        .stSelectbox label{
+            color: white;
+        }
+        .step-down{
+            color: white;
+            background-color:#1e3216;
+        }
+        .step-up{
+            color: white;
+            background-color:#1e3216;
+        }
+        .st-bp{
+            color: white;
+            background-color:#1e3216;
+        }
+        .st-bs {
+            color: white;
+        }
+        .st-fg {
+            color: white;
+        }
+        .st-dc{
+            background-color:#1e3216;
+            border: 0;
+        }
+        .st-bu{
+            background-color:#1e3216;
+            border: 0;
+        }
+        .st-al{
+            color:white;
+        }
+        .st-ef {
+            color:white;
+        }
+        .css-2trqyj {
+            color:white;
+            background-color:#1e3216;
+            border: 0;
+        }
+        .css-odwihv {
+            color:#008a07;
+        }
+        .streamlit-button.primary-button{
+            background-color:#008a07;
+            color:white;
+            border: 0;
+        }
+        .stButton{
+            text-align: center;
+        }
+        .stAlert{
+            bottom: 10px;
+        }
+        .st-ej {
+            color: white;
+        }
+        </style>
+        """
 
 
 def predict(model, input_df):
@@ -145,107 +243,64 @@ def get_table_download_link(df):
     return href
 
 
+def load_model_info(plotPath, dType):
+    st.markdown('<font color=white>モデル情報</font>', unsafe_allow_html=True)
+    try:
+        data = pd.read_csv(plotPath + 'models.csv', index_col=0)
+        st.write(data)
+    except FileNotFoundError:
+        st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
+        pass
+    if dType == 'Regression':
+        try:
+            fiImage = Image.open(plotPath + 'Feature Importance.png')
+            st.markdown('<font color=white>特徴量の重要度</font>', unsafe_allow_html=True)
+            st.image(fiImage, width=700)
+        except FileNotFoundError:
+            st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
+            pass
+        try:
+            fsImg = Image.open(plotPath + 'Feature Selection.png')
+            st.markdown('<font color=white>特徴選択</font>', unsafe_allow_html=True)
+            st.image(fsImg, width=700)
+        except FileNotFoundError:
+            st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
+            pass
+        try:
+            reImg = Image.open(plotPath + 'Residuals.png')
+            st.markdown('<font color=white>残差</font>', unsafe_allow_html=True)
+            st.image(reImg, width=700)
+        except FileNotFoundError:
+            st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
+            pass
+    elif dType == 'Classification':
+        try:
+            crImage = Image.open(plotPath + 'Class Report.png')
+            st.markdown('<font color=white>ヒートマップ</font>', unsafe_allow_html=True)
+            st.image(crImage, width=700)
+        except FileNotFoundError:
+            st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
+            pass
+        try:
+            cmImg = Image.open(plotPath + 'Confusion Matrix.png')
+            st.markdown('<font color=white>混合行列</font>', unsafe_allow_html=True)
+            st.image(cmImg, width=700) 
+        except FileNotFoundError:
+            st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
+            pass
+    try:
+        peImg = Image.open(plotPath + 'Prediction Error.png')
+        st.markdown('<font color=white>予測誤差</font>', unsafe_allow_html=True)
+        st.image(peImg, width=700)
+    except FileNotFoundError:
+        st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
+        pass
+
+
 def run():
-    from PIL import Image
     image = Image.open(IMG_PATH + 'logoMilizePycaret.png')
     image_milize = Image.open(IMG_PATH + 'milize_logo.png')
     irisImage = Image.open(IMG_PATH + 'iris-machinelearning.jpg')
-    hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            # body {color: white;}
-            .css-1aumxhk {
-                background-image: linear-gradient(#008a07,#008a07);
-                color: white;
-            }
-            .css-1ilyi7m {
-                color: white;
-            }
-            .main{
-                background-color: #111111;
-                label{
-                    color: white;
-                }
-            }
-            .main label{
-                color: white;
-            }
-            .uploadedFileName{
-                color: white;
-            }
-            .stNumberInput div.input-container div.controls .control{
-                background-color:#008a07;
-            }
-            .ReactVirtualized__Grid{
-                color: white;
-            }
-            h1{
-                color: white
-            }
-            .st-au{
-                border: 0;
-                background-image: linear-gradient(#008a07,#008a07);
-            }
-            .stSelectbox label{
-                color: white;
-            }
-            .step-down{
-                color: white;
-                background-color:#1e3216;
-            }
-            .step-up{
-                color: white;
-                background-color:#1e3216;
-            }
-            .st-bp{
-                color: white;
-                background-color:#1e3216;
-            }
-            .st-bs {
-                color: white;
-            }
-            .st-fg {
-                color: white;
-            }
-            .st-dc{
-                background-color:#1e3216;
-                border: 0;
-            }
-            .st-bu{
-                background-color:#1e3216;
-                border: 0;
-            }
-            .st-al{
-                color:white;
-            }
-            .st-ef {
-                color:white;
-            }
-            .css-2trqyj {
-                color:white;
-                background-color:#1e3216;
-                border: 0;
-            }
-            .css-odwihv {
-                color:#008a07;
-            }
-            .streamlit-button.primary-button{
-                background-color:#008a07;
-                color:white;
-                border: 0;
-            }
-            .stButton{
-                text-align: center;
-            }
-            .stAlert{
-                bottom: 10px;
-            }
-            .st-ej {
-                color: white;
-            }
-            </style>
-            """
 
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     st.image(image, use_column_width=False, width=800)
@@ -282,93 +337,71 @@ def run():
         if len(models) == 0:
             st.warning("モデルはありません。新規作成してください。")
             trainModel(dType, dataset, target)
-        elif add_selectbox == 'Online':
+        else:
             modelName = st.selectbox('Model', models)
             plotPath = MODEL_PATH + dataset + '/app/models/' + modelName + '/'
-            if dType == 'Regression':
-                fiImage = Image.open(plotPath + 'Feature Importance.png')
-                st.markdown('<font color=white>特徴量の重要度</font>', unsafe_allow_html=True)
-                st.image(fiImage, width=700)
-                fsImg = Image.open(plotPath + 'Feature Selection.png')
-                st.markdown('<font color=white>特徴選択</font>', unsafe_allow_html=True)
-                st.image(fsImg, width=700)
-                reImg = Image.open(plotPath + 'Residuals.png')
-                st.markdown('<font color=white>残差</font>', unsafe_allow_html=True)
-                st.image(reImg, width=700)
-            elif dType == 'Classification':
-                crImage = Image.open(plotPath + 'Class Report.png')
-                st.markdown('<font color=white>ヒートマップ</font>', unsafe_allow_html=True)
-                st.image(crImage, width=700)
-                cmImg = Image.open(plotPath + 'Confusion Matrix.png')
-                st.markdown('<font color=white>混合行列</font>', unsafe_allow_html=True)
-                st.image(cmImg, width=700)
-            peImg = Image.open(plotPath + 'Prediction Error.png')
-            st.markdown('<font color=white>予測誤差</font>', unsafe_allow_html=True)
-            st.image(peImg, width=700)
+            load_model_info(plotPath, dType)
             trainModel(dType, dataset, target)
             delModel(modelName, dataset)
-            input_dict = {}
-            if dataset == 'insurance':
-                age = st.number_input('Age', min_value=1, max_value=100, value=25)
-                sex = st.selectbox('Sex', ['male', 'female'])
-                bmi = st.number_input('BMI', min_value=10, max_value=50, value=10)
-                children = st.selectbox(
-                    'Children', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-                if st.checkbox('Smoker'):
-                    smoker = 'yes'
-                else:
-                    smoker = 'no'
-                region = st.selectbox(
-                    'Region', ['southwest', 'northwest', 'northeast', 'southeast'])
-                input_dict = {'age': age, 'sex': sex, 'bmi': bmi, 'children': children, 'smoker': smoker, 'region': region}
-            elif dataset == 'iris':
-                sepal_length = st.number_input(
-                    'sepal_length', min_value=1.0, max_value=100.0, value=5.1)
-                sepal_width = st.number_input(
-                    'sepal_width', min_value=1.0, max_value=50.0, value=3.5)
-                petal_length = st.number_input(
-                    'petal_length', min_value=1.0, max_value=100.0, value=1.4)
-                petal_width = st.number_input(
-                    'petal_width', min_value=0.0, max_value=50.0, value=0.2)
-                input_dict = {'sepal_length': sepal_length, 'sepal_width': sepal_width, 'petal_length': petal_length, 'petal_width': petal_width}
-            else:
-                for idx, col in enumerate(targetVal):
-                    if col != target:
-                        locals()['v' + str(idx)] = st.number_input(col, min_value=0.0, value=0.0)
-                        input_dict[col] = locals()['v' + str(idx)]
-            output = ""
-            input_df = pd.DataFrame([input_dict])
-            model = load_model(plotPath + modelName)
-            if st.button("予測する"):
-                output = predict(model=model, input_df=input_df)
+            if add_selectbox == 'Online':
+                input_dict = {}
                 if dataset == 'insurance':
-                    output = '保険料予測は {}'.format(
-                        str(math.ceil(output * 104.86)) + '円')
+                    age = st.number_input('Age', min_value=1, max_value=100, value=25)
+                    sex = st.selectbox('Sex', ['male', 'female'])
+                    bmi = st.number_input('BMI', min_value=10, max_value=50, value=10)
+                    children = st.selectbox(
+                        'Children', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+                    if st.checkbox('Smoker'):
+                        smoker = 'yes'
+                    else:
+                        smoker = 'no'
+                    region = st.selectbox(
+                        'Region', ['southwest', 'northwest', 'northeast', 'southeast'])
+                    input_dict = {'age': age, 'sex': sex, 'bmi': bmi, 'children': children, 'smoker': smoker, 'region': region}
                 elif dataset == 'iris':
-                    output = 'This is ' + LabelEncoded[output]
-                st.success(output)
-                if dataset == 'iris':
-                    st.image(irisImage, width=500)
+                    sepal_length = st.number_input(
+                        'sepal_length', min_value=1.0, max_value=100.0, value=5.1)
+                    sepal_width = st.number_input(
+                        'sepal_width', min_value=1.0, max_value=50.0, value=3.5)
+                    petal_length = st.number_input(
+                        'petal_length', min_value=1.0, max_value=100.0, value=1.4)
+                    petal_width = st.number_input(
+                        'petal_width', min_value=0.0, max_value=50.0, value=0.2)
+                    input_dict = {'sepal_length': sepal_length, 'sepal_width': sepal_width, 'petal_length': petal_length, 'petal_width': petal_width}
+                else:
+                    for idx, col in enumerate(targetVal):
+                        if col != target:
+                            locals()['v' + str(idx)] = st.number_input(col, min_value=0.0, value=0.0)
+                            input_dict[col] = locals()['v' + str(idx)]
+                output = ""
+                input_df = pd.DataFrame([input_dict])
+                model = load_model(plotPath + modelName)
+                if st.button("予測する"):
+                    output = predict(model=model, input_df=input_df)
+                    if dataset == 'insurance':
+                        output = '保険料予測は {}'.format(
+                            str(math.ceil(output * 104.86)) + '円')
+                    elif dataset == 'iris':
+                        output = 'This is ' + LabelEncoded[output]
+                    st.success(output)
+                    if dataset == 'iris':
+                        st.image(irisImage, width=500)
 
-        elif add_selectbox == 'Batch':
-            modelName = sex = st.selectbox('Model', models)
-            file_upload = st.file_uploader(
-                "予測データのcsvファイルを選んでください。", type=["csv"])
-
-            if file_upload is not None:
-                print(file_upload)
-                data = pd.read_csv(file_upload)
-                model = load_model(MODEL_PATH + dataset + '/app/models/' + modelName + '/' + modelName)
-                predictions = predict_model(estimator=model, data=data).rename(
-                    columns={'Label': target})
-                predictions[target].replace(
-                    {0: LabelEncoded[0], 1: LabelEncoded[1], 2: LabelEncoded[2]}, inplace=True)
-
-                st.write(predictions)
-                if dataset == 'iris':
-                    st.image(irisImage, width=500)
-
-                st.markdown(get_table_download_link(predictions), unsafe_allow_html=True)
+            elif add_selectbox == 'Batch':
+                file_upload = st.file_uploader(
+                    "予測データのcsvファイルを選んでください。", type=["csv"])
+                if file_upload is not None:
+                    print(file_upload)
+                    data = pd.read_csv(file_upload)
+                    model = load_model(MODEL_PATH + dataset + '/app/models/' + modelName + '/' + modelName)
+                    predictions = predict_model(estimator=model, data=data).rename(
+                        columns={'Label': target})
+                    predictions[target].replace(
+                        {0: LabelEncoded[0], 1: LabelEncoded[1], 2: LabelEncoded[2]}, inplace=True)
+                    st.write(predictions)
+                    if dataset == 'iris':
+                        st.image(irisImage, width=500)
+                    st.markdown(get_table_download_link(predictions), unsafe_allow_html=True)
 
 
 if __name__ == '__main__':
