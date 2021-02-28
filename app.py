@@ -122,6 +122,9 @@ hide_streamlit_style = """
         .st-ej {
             color: white;
         }
+        input[type="text"] {
+            caret-color: white;
+        }
         </style>
         """
 
