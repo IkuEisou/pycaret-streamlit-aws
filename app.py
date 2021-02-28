@@ -125,6 +125,9 @@ hide_streamlit_style = """
         input[type="text"] {
             caret-color: white;
         }
+        .css-x0vgxp {
+            background: black;
+        }
         </style>
         """
 
