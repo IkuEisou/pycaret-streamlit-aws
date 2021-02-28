@@ -147,16 +147,17 @@ def find(pattern, path):
 
 
 def trainModel(dType, dataset, target):
+    now = datetime.now()
+    dt_string = now.strftime("%Y%m%d%H%M%S")
+    fn = st.text_input('新規作成のモデル名称')
     if st.button("モデル新規作成"):
         url = AUTOML_API_URL + '/automl'
-        myobj = {'type': dType, 'target': target, 'dataset': dataset}
+        myobj = {'type': dType, 'target': target, 'dataset': dataset, 'name': fn}
         chunk_size = 1024
         'Waiting for training model...'
         r = requests.post(url, data=myobj, stream=True)
         if r.status_code == 200:
             content_size = int(r.headers['content-length'])
-            now = datetime.now()
-            dt_string = now.strftime("%Y%m%d%H%M%S")
             fileName = dataset + '_' + dt_string + '.zip'
             with open(MODEL_PATH + dataset + '/' + fileName, "wb") as file:
                 # Add a placeholder
@@ -232,14 +233,15 @@ def delModel(toDeleteModel, dataset):
             st.warning("{}モデルが見つかりません。".format(toDeleteModel))
 
 
-def get_table_download_link(df):
+def get_table_download_link(df, title):
     """Generates a link allowing the data in a given panda dataframe to be downloaded
     in:  dataframe
     out: href string
     """
+    fn = st.text_input(title + '保存ファイル名称', title)
     csv = df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
-    href = f'<a href="data:file/csv;base64,{b64}">予測結果のダウンロード</a>'
+    href = '<a download=' + fn + '.csv' + f' href="data:file/csv;base64,{b64}">' + title + 'ダウンロード</a>'
     return href
 
 
@@ -248,6 +250,7 @@ def load_model_info(plotPath, dType):
     try:
         data = pd.read_csv(plotPath + 'models.csv', index_col=0)
         st.write(data)
+        st.markdown(get_table_download_link(data, 'モデル情報'), unsafe_allow_html=True)
     except FileNotFoundError:
         st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
         pass
@@ -401,7 +404,7 @@ def run():
                     st.write(predictions)
                     if dataset == 'iris':
                         st.image(irisImage, width=500)
-                    st.markdown(get_table_download_link(predictions), unsafe_allow_html=True)
+                    st.markdown(get_table_download_link(predictions, '予測結果'), unsafe_allow_html=True)
 
 
 if __name__ == '__main__':
