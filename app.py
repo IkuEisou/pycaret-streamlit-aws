@@ -19,7 +19,7 @@ import shutil
 
 IMG_PATH = 'public/static/img/'
 MODEL_PATH = 'volume/models/'
-AUTOML_API_URL = 'http://localhost:5000'
+AUTOML_API_URL = 'http://automl_api:5000'
 Features = {
     'insurance': ['age', 'sex', 'bmi', 'children', 'smoker', 'region'],
     'diamond': ['Carat', 'Weight', 'Cut', 'Color',
