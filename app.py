@@ -19,7 +19,7 @@ import shutil
 
 IMG_PATH = 'public/static/img/'
 MODEL_PATH = 'volume/models/'
-AUTOML_API_URL = 'http://localhost:5000'
+AUTOML_API_URL = 'http://automl_api:5000'
 Features = {
     'insurance': ['age', 'sex', 'bmi', 'children', 'smoker', 'region'],
     'diamond': ['Carat', 'Weight', 'Cut', 'Color',
@@ -293,7 +293,7 @@ def load_model_info(plotPath, dType):
         try:
             cmImg = Image.open(plotPath + 'Confusion Matrix.png')
             st.markdown('<font color=white>混合行列</font>', unsafe_allow_html=True)
-            st.image(cmImg, width=700) 
+            st.image(cmImg, width=700)
         except FileNotFoundError:
             st.markdown('<font color=white>なし</font>', unsafe_allow_html=True)
             pass
